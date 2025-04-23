@@ -174,3 +174,64 @@ exports.getFullInfo = async (symbol) => {
     throw new Error(`Falha ao buscar informações completas: ${error.message}`);
   }
 };
+
+// Lista expandida de ADRs brasileiras com informações adicionais
+const BRAZILIAN_ADRS = [
+  { symbol: 'PBR', name: 'Petrobras', sector: 'Petróleo e Gás' },
+  { symbol: 'VALE', name: 'Vale', sector: 'Mineração' },
+  { symbol: 'ITUB', name: 'Itaú Unibanco', sector: 'Financeiro' },
+  { symbol: 'BBD', name: 'Banco Bradesco', sector: 'Financeiro' },
+  { symbol: 'ABEV', name: 'Ambev', sector: 'Bebidas' },
+  { symbol: 'GGB', name: 'Gerdau', sector: 'Siderurgia' },
+  { symbol: 'SID', name: 'CSN', sector: 'Siderurgia' },
+  { symbol: 'CIG', name: 'Cemig', sector: 'Energia' },
+  { symbol: 'EBR', name: 'Eletrobras', sector: 'Energia' },
+  { symbol: 'CBD', name: 'Grupo Pão de Açúcar', sector: 'Varejo' },
+  { symbol: 'TSU', name: 'TIM', sector: 'Telecomunicações' },
+  { symbol: 'TIMB', name: 'TIM Brasil', sector: 'Telecomunicações' },
+  { symbol: 'SBS', name: 'Sabesp', sector: 'Saneamento' },
+  { symbol: 'VIVO', name: 'Telefônica Brasil', sector: 'Telecomunicações' },
+  { symbol: 'LND', name: 'Braskem', sector: 'Petroquímico' },
+  { symbol: 'ERJ', name: 'Embraer', sector: 'Aeroespacial' },
+  { symbol: 'GOL', name: 'Gol Linhas Aéreas', sector: 'Aviação' },
+  { symbol: 'AZUL', name: 'Azul Linhas Aéreas', sector: 'Aviação' },
+  { symbol: 'BSBR', name: 'Banco Santander Brasil', sector: 'Financeiro' },
+  { symbol: 'SUZ', name: 'Suzano', sector: 'Papel e Celulose' }
+];
+
+// Controlador atualizado para ADRs brasileiras
+exports.getBrazilianADRs = async (req, res, next) => {
+  try {
+    // Extrair apenas os símbolos para a consulta
+    const symbols = BRAZILIAN_ADRS.map(adr => adr.symbol);
+    
+    // Obter cotações atuais
+    const quotes = await yahooFinanceService.getQuotes(symbols);
+    
+    // Combinar dados estáticos com cotações
+    const results = BRAZILIAN_ADRS.map(adr => {
+      const quote = quotes.find(q => q.symbol === adr.symbol) || {};
+      return {
+        ...adr,
+        ...quote
+      };
+    });
+    
+    // Agrupar por setor
+    const bySector = results.reduce((acc, adr) => {
+      if (!acc[adr.sector]) {
+        acc[adr.sector] = [];
+      }
+      acc[adr.sector].push(adr);
+      return acc;
+    }, {});
+    
+    res.json({
+      total: results.length,
+      adrs: results,
+      bySector
+    });
+  } catch (error) {
+    next(error);
+  }
+};
